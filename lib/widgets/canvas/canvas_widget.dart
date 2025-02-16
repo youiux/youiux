@@ -39,12 +39,10 @@ class _CanvasWidgetState extends State<CanvasWidget> {
           cursor: _getCursor(),
           child: GestureDetector(
             onPanStart: (details) {
-              if (!canvasProvider.isEditMode) {
-                setState(() {
-                  startPosition = details.localPosition;
-                  currentPosition = details.localPosition;
-                });
-              }
+              setState(() {
+                startPosition = details.localPosition;
+                currentPosition = details.localPosition;
+              });
             },
             onPanUpdate: (details) {
               setState(() {
@@ -69,18 +67,22 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             onSecondaryTapDown: (details) {
               _showContextMenu(context, details.globalPosition, canvasProvider);
             },
-            child: CustomPaint(
-              painter: CanvasPainter(
-                elements: canvasProvider.elements,
-                startPosition: startPosition,
-                currentPosition: currentPosition,
-                selectedElement: canvasProvider.selectedElement,
-                selectedShape: canvasProvider.selectedShape,
-              ),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color: Colors.grey[200],
+            child: SizedBox(
+              width: 800,
+              height: 600,
+              child: CustomPaint(
+                painter: CanvasPainter(
+                  elements: canvasProvider.elements,
+                  startPosition: startPosition,
+                  currentPosition: currentPosition,
+                  selectedElement: canvasProvider.selectedElement,
+                  selectedShape: canvasProvider.selectedShape,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.grey[200],
+                ),
               ),
             ),
           ),
@@ -181,74 +183,41 @@ class CanvasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw grid or background
-    final backgroundPaint =
-        Paint()
-          ..color = Colors.grey[200]!
-          ..style = PaintingStyle.fill;
-    canvas.drawRect(Offset.zero & size, backgroundPaint);
-
     // Draw existing elements
     for (var element in elements) {
-      // Draw filled shape
-      final fillPaint =
-          Paint()
-            ..color = element.color.withOpacity(0.7)
-            ..style = PaintingStyle.fill;
-
-      // Draw outline
-      final strokePaint =
+      final paint =
           Paint()
             ..color = element.color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.0;
+            ..style = PaintingStyle.fill;
 
       if (element.shapeType == ShapeType.rectangle) {
+        // Ensure that the rectangle is drawn with correct points
         final rect = Rect.fromPoints(element.position, element.endPosition!);
-        canvas.drawRect(rect, fillPaint);
-        canvas.drawRect(rect, strokePaint);
+        canvas.drawRect(rect, paint);
       } else if (element.shapeType == ShapeType.circle) {
+        // Ensure that the circle is drawn with correct center and radius
         final center = element.position;
         final radius = (element.endPosition! - element.position).distance / 2;
-        canvas.drawCircle(center, radius, fillPaint);
-        canvas.drawCircle(center, radius, strokePaint);
-      }
-
-      // Draw selection or hover highlight
-      if (element == selectedElement) {
-        final highlightPaint =
-            Paint()
-              ..color = Colors.blue
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2.0;
-
-        final rect = Rect.fromPoints(element.position, element.endPosition!);
-        canvas.drawRect(rect, highlightPaint);
+        canvas.drawCircle(center, radius, paint);
       }
     }
 
-    // Draw shape being currently drawn
+    // Draw current shape being drawn
     if (startPosition != null && currentPosition != null) {
-      final previewPaint =
+      final paint =
           Paint()
-            ..color = Colors.blue.withOpacity(0.3)
+            ..color = Colors.blue.withOpacity(0.5)
             ..style = PaintingStyle.fill;
 
-      final strokePaint =
-          Paint()
-            ..color = Colors.blue
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.0;
-
       if (selectedShape == ShapeType.rectangle) {
+        // Ensure that the rectangle is drawn with correct points
         final rect = Rect.fromPoints(startPosition!, currentPosition!);
-        canvas.drawRect(rect, previewPaint);
-        canvas.drawRect(rect, strokePaint);
+        canvas.drawRect(rect, paint);
       } else if (selectedShape == ShapeType.circle) {
+        // Ensure that the circle is drawn with correct center and radius
         final center = startPosition!;
         final radius = (currentPosition! - startPosition!).distance / 2;
-        canvas.drawCircle(center, radius, previewPaint);
-        canvas.drawCircle(center, radius, strokePaint);
+        canvas.drawCircle(center, radius, paint);
       }
     }
   }
