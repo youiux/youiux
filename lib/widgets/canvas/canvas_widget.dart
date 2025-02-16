@@ -14,14 +14,30 @@ class CanvasWidget extends StatelessWidget {
           boundaryMargin: const EdgeInsets.all(20),
           minScale: 0.1,
           maxScale: 4.0,
-          child: GestureDetector(
-            onTapDown: (details) {
-              canvasProvider.addElement(
-                DesignElement(
-                  position: details.localPosition,
-                  shapeType: canvasProvider.selectedShape,
-                ),
-              );
+          child: Listener(
+            onPointerDown: (event) {
+              // Check if we're near an existing element
+              bool elementTapped = false;
+              for (var element in canvasProvider.elements) {
+                if ((event.localPosition.dx - element.position.dx).abs() <
+                        element.width / 2 &&
+                    (event.localPosition.dy - element.position.dy).abs() <
+                        element.height / 2) {
+                  canvasProvider.selectElement(element);
+                  elementTapped = true;
+                  break;
+                }
+              }
+
+              // If no element was tapped, add a new one
+              if (!elementTapped) {
+                canvasProvider.addElement(
+                  DesignElement(
+                    position: event.localPosition,
+                    shapeType: canvasProvider.selectedShape,
+                  ),
+                );
+              }
             },
             child: CustomPaint(
               painter: CanvasPainter(canvasProvider.elements),
@@ -51,6 +67,7 @@ class CanvasPainter extends CustomPainter {
             ..color = element.color
             ..style = PaintingStyle.fill;
 
+      // Draw different shapes based on the shapeType
       // Draw different shapes based on the shapeType
       switch (element.shapeType) {
         case ShapeType.rectangle:
