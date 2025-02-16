@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/canvas_provider.dart';
@@ -36,12 +37,22 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             });
           },
           cursor: _getCursor(),
-          child: GestureDetector(
-            onSecondaryTapDown: (details) {
-              setState(() {
-                menuPosition = details.localPosition;
-              });
-              _showContextMenu(context, details.globalPosition, canvasProvider);
+          child: RawGestureDetector(
+            gestures: {
+              AllowMultipleGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                    AllowMultipleGestureRecognizer
+                  >(() => AllowMultipleGestureRecognizer(), (
+                    AllowMultipleGestureRecognizer instance,
+                  ) {
+                    instance.onSecondaryTapDown = (details) {
+                      _showContextMenu(
+                        context,
+                        details.globalPosition,
+                        canvasProvider,
+                      );
+                    };
+                  }),
             },
             child: Stack(
               children: [
@@ -90,34 +101,37 @@ class _CanvasWidgetState extends State<CanvasWidget> {
       Offset.zero & overlay.size,
     );
 
-    showMenu(
-      context: context,
-      position: positionRect,
-      items: [
-        if (provider.selectedElement != null) ...[
+    // Show menu on next frame to ensure browser context menu is fully prevented
+    Future.microtask(() {
+      showMenu(
+        context: context,
+        position: positionRect,
+        items: [
+          if (provider.selectedElement != null) ...[
+            PopupMenuItem(
+              child: const Text('Delete'),
+              onTap: () => provider.deleteElement(provider.selectedElement!),
+            ),
+            PopupMenuItem(
+              child: const Text('Duplicate'),
+              onTap: () => provider.duplicateElement(provider.selectedElement!),
+            ),
+            PopupMenuItem(
+              child: const Text('Bring to Front'),
+              onTap: () => provider.bringToFront(provider.selectedElement!),
+            ),
+            PopupMenuItem(
+              child: const Text('Send to Back'),
+              onTap: () => provider.sendToBack(provider.selectedElement!),
+            ),
+          ],
           PopupMenuItem(
-            child: const Text('Delete'),
-            onTap: () => provider.deleteElement(provider.selectedElement!),
-          ),
-          PopupMenuItem(
-            child: const Text('Duplicate'),
-            onTap: () => provider.duplicateElement(provider.selectedElement!),
-          ),
-          PopupMenuItem(
-            child: const Text('Bring to Front'),
-            onTap: () => provider.bringToFront(provider.selectedElement!),
-          ),
-          PopupMenuItem(
-            child: const Text('Send to Back'),
-            onTap: () => provider.sendToBack(provider.selectedElement!),
+            child: const Text('Paste'),
+            onTap: () => provider.paste(menuPosition!),
           ),
         ],
-        PopupMenuItem(
-          child: const Text('Paste'),
-          onTap: () => provider.paste(menuPosition!),
-        ),
-      ],
-    );
+      );
+    });
   }
 
   DesignElement? _findElementAt(Offset position, List<DesignElement> elements) {
@@ -359,5 +373,12 @@ class CanvasPainter extends CustomPainter {
         oldDelegate.startPosition != startPosition ||
         oldDelegate.currentPosition != currentPosition ||
         oldDelegate.selectedElement != selectedElement;
+  }
+}
+
+class AllowMultipleGestureRecognizer extends TapGestureRecognizer {
+  @override
+  void rejectGesture(int pointer) {
+    acceptGesture(pointer);
   }
 }
