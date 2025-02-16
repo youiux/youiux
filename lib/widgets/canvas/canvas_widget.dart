@@ -152,8 +152,15 @@ class _CanvasWidgetState extends State<CanvasWidget> {
   bool isPointInsideElement(Offset point, DesignElement element) {
     if (element.endPosition == null) return false;
 
-    Rect elementRect = Rect.fromPoints(element.position, element.endPosition!);
-    return elementRect.contains(point);
+    if (element.shapeType == ShapeType.rectangle) {
+      final rect = Rect.fromPoints(element.position, element.endPosition!);
+      return rect.contains(point);
+    } else if (element.shapeType == ShapeType.circle) {
+      final center = element.position;
+      final radius = (element.endPosition! - element.position).distance / 2;
+      return (point - center).distance <= radius;
+    }
+    return false;
   }
 }
 
@@ -174,41 +181,74 @@ class CanvasPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Draw grid or background
+    final backgroundPaint =
+        Paint()
+          ..color = Colors.grey[200]!
+          ..style = PaintingStyle.fill;
+    canvas.drawRect(Offset.zero & size, backgroundPaint);
+
     // Draw existing elements
     for (var element in elements) {
-      final paint =
+      // Draw filled shape
+      final fillPaint =
           Paint()
-            ..color = element.color
+            ..color = element.color.withOpacity(0.7)
             ..style = PaintingStyle.fill;
 
+      // Draw outline
+      final strokePaint =
+          Paint()
+            ..color = element.color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0;
+
       if (element.shapeType == ShapeType.rectangle) {
-        canvas.drawRect(
-          Rect.fromPoints(element.position, element.endPosition!),
-          paint,
-        );
+        final rect = Rect.fromPoints(element.position, element.endPosition!);
+        canvas.drawRect(rect, fillPaint);
+        canvas.drawRect(rect, strokePaint);
       } else if (element.shapeType == ShapeType.circle) {
         final center = element.position;
         final radius = (element.endPosition! - element.position).distance / 2;
-        canvas.drawCircle(center, radius, paint);
+        canvas.drawCircle(center, radius, fillPaint);
+        canvas.drawCircle(center, radius, strokePaint);
+      }
+
+      // Draw selection or hover highlight
+      if (element == selectedElement) {
+        final highlightPaint =
+            Paint()
+              ..color = Colors.blue
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.0;
+
+        final rect = Rect.fromPoints(element.position, element.endPosition!);
+        canvas.drawRect(rect, highlightPaint);
       }
     }
 
-    // Draw current shape being drawn
+    // Draw shape being currently drawn
     if (startPosition != null && currentPosition != null) {
-      final paint =
+      final previewPaint =
           Paint()
-            ..color = Colors.blue.withOpacity(0.5)
+            ..color = Colors.blue.withOpacity(0.3)
             ..style = PaintingStyle.fill;
 
+      final strokePaint =
+          Paint()
+            ..color = Colors.blue
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0;
+
       if (selectedShape == ShapeType.rectangle) {
-        canvas.drawRect(
-          Rect.fromPoints(startPosition!, currentPosition!),
-          paint,
-        );
+        final rect = Rect.fromPoints(startPosition!, currentPosition!);
+        canvas.drawRect(rect, previewPaint);
+        canvas.drawRect(rect, strokePaint);
       } else if (selectedShape == ShapeType.circle) {
         final center = startPosition!;
         final radius = (currentPosition! - startPosition!).distance / 2;
-        canvas.drawCircle(center, radius, paint);
+        canvas.drawCircle(center, radius, previewPaint);
+        canvas.drawCircle(center, radius, strokePaint);
       }
     }
   }
