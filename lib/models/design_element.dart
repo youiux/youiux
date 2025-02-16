@@ -3,7 +3,7 @@ import '../providers/canvas_provider.dart';
 
 class DesignElement {
   Offset position;
-  Offset? endPosition;
+  Offset? endPosition; // Make endPosition nullable
   double width;
   double height;
   Color color;

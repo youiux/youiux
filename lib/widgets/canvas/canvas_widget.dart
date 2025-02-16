@@ -171,7 +171,6 @@ class CanvasPainter extends CustomPainter {
             ..color = Colors.blue.withOpacity(0.5)
             ..style = PaintingStyle.fill;
 
-      // Draw the shape being currently drawn
       final provider = Provider.of<CanvasProvider>(
         null as BuildContext,
         listen: false,
