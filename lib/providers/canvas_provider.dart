@@ -6,14 +6,13 @@ enum ShapeType { rectangle, circle }
 class CanvasProvider extends ChangeNotifier {
   List<DesignElement> elements = [];
   DesignElement? selectedElement;
-  ShapeType selectedShape = ShapeType.rectangle; // Set default shape
-  bool drawing = false;
-  bool drawingMode = true;
+  ShapeType selectedShape = ShapeType.rectangle;
+  bool isDrawing = false; // renamed from 'drawing'
+  bool isEditMode = false; // renamed from 'drawingMode'
 
   void addElement(DesignElement element) {
-    selectedElement = element; // Select the newly created element
     elements.add(element);
-    drawingMode = false; // Switch to selection mode after creating shape
+    selectedElement = element;
     notifyListeners();
   }
 
@@ -38,18 +37,17 @@ class CanvasProvider extends ChangeNotifier {
   }
 
   void setSelectedShape(ShapeType shape) {
-    // Remove nullable type
     selectedShape = shape;
     notifyListeners();
   }
 
   void setDrawing(bool value) {
-    drawing = value;
+    isDrawing = value;
     notifyListeners();
   }
 
   void setDrawingMode(bool value) {
-    drawingMode = value;
+    isEditMode = value;
     notifyListeners();
   }
 
@@ -99,7 +97,6 @@ class CanvasProvider extends ChangeNotifier {
       case ResizeHandle.bottomRight:
         newEnd = Offset(rect.right + delta.dx, rect.bottom + delta.dy);
         break;
-      // Handle mid-point resizing
       case ResizeHandle.top:
         newStart = Offset(rect.left, rect.top + delta.dy);
         break;

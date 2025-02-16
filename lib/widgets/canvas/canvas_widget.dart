@@ -37,42 +37,51 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             });
           },
           cursor: _getCursor(),
-          child: Listener(
-            onPointerDown: (event) {
-              // Handle right click
-              if (event.kind == PointerDeviceKind.mouse &&
-                  event.buttons == kSecondaryMouseButton) {
-                _showContextMenu(context, event.position, canvasProvider);
+          child: GestureDetector(
+            onPanStart: (details) {
+              if (!canvasProvider.isEditMode) {
+                setState(() {
+                  startPosition = details.localPosition;
+                  currentPosition = details.localPosition;
+                });
               }
             },
-            child: Stack(
-              children: [
-                InteractiveViewer(
-                  boundaryMargin: const EdgeInsets.all(20),
-                  minScale: 0.1,
-                  maxScale: 4.0,
-                  child: GestureDetector(
-                    onPanStart: _handlePanStart,
-                    onPanUpdate: _handlePanUpdate,
-                    onPanEnd: _handlePanEnd,
-                    child: CustomPaint(
-                      painter: CanvasPainter(
-                        elements: canvasProvider.elements,
-                        startPosition: startPosition,
-                        currentPosition: currentPosition,
-                        selectedElement: canvasProvider.selectedElement,
-                        hoveredElement: hoveredElement,
-                        selectedShape: canvasProvider.selectedShape,
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        color: Colors.grey[200],
-                      ),
-                    ),
+            onPanUpdate: (details) {
+              setState(() {
+                currentPosition = details.localPosition;
+              });
+            },
+            onPanEnd: (details) {
+              if (startPosition != null && currentPosition != null) {
+                canvasProvider.addElement(
+                  DesignElement(
+                    position: startPosition!,
+                    endPosition: currentPosition!,
+                    shapeType: canvasProvider.selectedShape,
                   ),
-                ),
-              ],
+                );
+                setState(() {
+                  startPosition = null;
+                  currentPosition = null;
+                });
+              }
+            },
+            onSecondaryTapDown: (details) {
+              _showContextMenu(context, details.globalPosition, canvasProvider);
+            },
+            child: CustomPaint(
+              painter: CanvasPainter(
+                elements: canvasProvider.elements,
+                startPosition: startPosition,
+                currentPosition: currentPosition,
+                selectedElement: canvasProvider.selectedElement,
+                selectedShape: canvasProvider.selectedShape,
+              ),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.grey[200],
+              ),
             ),
           ),
         );
@@ -140,75 +149,6 @@ class _CanvasWidgetState extends State<CanvasWidget> {
     return SystemMouseCursors.basic;
   }
 
-  void _handlePanStart(DragStartDetails details) {
-    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
-    if (canvasProvider.drawingMode) {
-      // Drawing mode
-      setState(() {
-        startPosition = details.localPosition;
-        currentPosition = details.localPosition;
-      });
-      canvasProvider.setDrawing(true);
-    } else {
-      // Selection/dragging mode
-      bool hitElement = false;
-      for (var element in canvasProvider.elements) {
-        if (isPointInsideElement(details.localPosition, element)) {
-          canvasProvider.selectElement(element);
-          setState(() {
-            isDragging = true;
-            startPosition = details.localPosition;
-          });
-          hitElement = true;
-          break;
-        }
-      }
-      if (!hitElement) {
-        canvasProvider.selectElement(null);
-      }
-    }
-  }
-
-  void _handlePanUpdate(DragUpdateDetails details) {
-    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
-    if (canvasProvider.drawing) {
-      // Drawing mode
-      setState(() {
-        currentPosition = details.localPosition;
-      });
-    } else if (isDragging && startPosition != null) {
-      // Dragging mode
-      final delta = details.localPosition - startPosition!;
-      canvasProvider.moveSelectedElement(delta);
-      setState(() {
-        startPosition = details.localPosition;
-      });
-    }
-  }
-
-  void _handlePanEnd(DragEndDetails details) {
-    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
-    if (canvasProvider.drawing) {
-      // Finish drawing
-      if (startPosition != null && currentPosition != null) {
-        canvasProvider.addElement(
-          DesignElement(
-            position: startPosition!,
-            endPosition: currentPosition!,
-            shapeType: canvasProvider.selectedShape,
-          ),
-        );
-      }
-    }
-    // Reset states
-    setState(() {
-      isDragging = false;
-      startPosition = null;
-      currentPosition = null;
-    });
-    canvasProvider.setDrawing(false);
-  }
-
   bool isPointInsideElement(Offset point, DesignElement element) {
     if (element.endPosition == null) return false;
 
@@ -222,7 +162,6 @@ class CanvasPainter extends CustomPainter {
   final Offset? startPosition;
   final Offset? currentPosition;
   final DesignElement? selectedElement;
-  final DesignElement? hoveredElement;
   final ShapeType? selectedShape;
 
   CanvasPainter({
@@ -230,7 +169,6 @@ class CanvasPainter extends CustomPainter {
     this.startPosition,
     this.currentPosition,
     this.selectedElement,
-    this.hoveredElement,
     this.selectedShape,
   });
 
@@ -238,123 +176,40 @@ class CanvasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw existing elements
     for (var element in elements) {
-      final isSelected = element == selectedElement;
-      final isHovered = element == hoveredElement;
-      _drawElement(canvas, element, isSelected, isHovered);
+      final paint =
+          Paint()
+            ..color = element.color
+            ..style = PaintingStyle.fill;
+
+      if (element.shapeType == ShapeType.rectangle) {
+        canvas.drawRect(
+          Rect.fromPoints(element.position, element.endPosition!),
+          paint,
+        );
+      } else if (element.shapeType == ShapeType.circle) {
+        final center = element.position;
+        final radius = (element.endPosition! - element.position).distance / 2;
+        canvas.drawCircle(center, radius, paint);
+      }
     }
 
-    // Draw current drawing shape
+    // Draw current shape being drawn
     if (startPosition != null && currentPosition != null) {
       final paint =
           Paint()
             ..color = Colors.blue.withOpacity(0.5)
             ..style = PaintingStyle.fill;
 
-      _drawPreviewShape(
-        canvas,
-        startPosition!,
-        currentPosition!,
-        selectedShape,
-        paint,
-      );
-    }
-  }
-
-  void _drawElement(
-    Canvas canvas,
-    DesignElement element,
-    bool isSelected,
-    bool isHovered,
-  ) {
-    final paint =
-        Paint()
-          ..color = element.color
-          ..style = PaintingStyle.fill;
-
-    Rect boundingBox;
-
-    switch (element.shapeType) {
-      case ShapeType.rectangle:
-        boundingBox = Rect.fromPoints(element.position, element.endPosition!);
-        canvas.drawRect(boundingBox, paint);
-        break;
-      case ShapeType.circle:
-        Offset center = element.position;
-        double radius = (element.endPosition! - element.position).distance / 2;
-        boundingBox = Rect.fromCircle(center: center, radius: radius);
+      if (selectedShape == ShapeType.rectangle) {
+        canvas.drawRect(
+          Rect.fromPoints(startPosition!, currentPosition!),
+          paint,
+        );
+      } else if (selectedShape == ShapeType.circle) {
+        final center = startPosition!;
+        final radius = (currentPosition! - startPosition!).distance / 2;
         canvas.drawCircle(center, radius, paint);
-        break;
-      default:
-        return;
-    }
-
-    if (isSelected || isHovered) {
-      final outlinePaint =
-          Paint()
-            ..color = isSelected ? Colors.blue : Colors.grey
-            ..strokeWidth = isSelected ? 2 : 1
-            ..style = PaintingStyle.stroke;
-
-      canvas.drawRect(boundingBox, outlinePaint);
-
-      if (isSelected) {
-        _drawResizeHandles(canvas, boundingBox);
       }
-    }
-  }
-
-  void _drawResizeHandles(Canvas canvas, Rect boundingBox) {
-    final handlePaint =
-        Paint()
-          ..color = Colors.blue
-          ..style = PaintingStyle.fill;
-
-    // Draw corner handles
-    final handles = [
-      boundingBox.topLeft,
-      boundingBox.topRight,
-      boundingBox.bottomLeft,
-      boundingBox.bottomRight,
-
-      // Mid-point handles
-      Offset(boundingBox.left + boundingBox.width / 2, boundingBox.top),
-      Offset(boundingBox.left + boundingBox.width / 2, boundingBox.bottom),
-      Offset(boundingBox.left, boundingBox.top + boundingBox.height / 2),
-      Offset(boundingBox.right, boundingBox.top + boundingBox.height / 2),
-    ];
-
-    for (var handle in handles) {
-      canvas.drawCircle(handle, 5, handlePaint);
-    }
-
-    // Draw selection outline
-    final outlinePaint =
-        Paint()
-          ..color = Colors.blue
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke;
-
-    canvas.drawRect(boundingBox, outlinePaint);
-  }
-
-  void _drawPreviewShape(
-    Canvas canvas,
-    Offset start,
-    Offset end,
-    ShapeType? type,
-    Paint paint,
-  ) {
-    switch (type) {
-      case ShapeType.rectangle:
-        canvas.drawRect(Rect.fromPoints(start, end), paint);
-        break;
-      case ShapeType.circle:
-        Offset center = start;
-        double radius = (end - start).distance / 2;
-        canvas.drawCircle(center, radius, paint);
-        break;
-      default:
-        break;
     }
   }
 
