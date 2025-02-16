@@ -21,9 +21,7 @@ class _CanvasWidgetState extends State<CanvasWidget> {
       builder: (context, canvasProvider, child) {
         return MouseRegion(
           cursor:
-              (canvasProvider.selectedShape != null &&
-                          !canvasProvider.drawingMode) ||
-                      canvasProvider.selectedElement != null
+              canvasProvider.drawingMode
                   ? SystemMouseCursors.precise
                   : SystemMouseCursors.basic,
           child: InteractiveViewer(
@@ -32,33 +30,18 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             maxScale: 4.0,
             child: GestureDetector(
               onPanStart: (details) {
-                if (canvasProvider.drawingMode &&
-                    canvasProvider.selectedShape != null) {
+                if (canvasProvider.drawingMode) {
                   setState(() {
                     startPosition = details.localPosition;
                     currentPosition = details.localPosition;
                   });
                   canvasProvider.setDrawing(true);
-                } else if (canvasProvider.selectedElement != null) {
-                  setState(() {
-                    startPosition = details.localPosition;
-                  });
                 }
               },
               onPanUpdate: (details) {
-                if (canvasProvider.drawing &&
-                    canvasProvider.selectedShape != null &&
-                    startPosition != null) {
+                if (canvasProvider.drawing) {
                   setState(() {
                     currentPosition = details.localPosition;
-                  });
-                } else if (canvasProvider.selectedElement != null &&
-                    startPosition != null) {
-                  final dx = details.localPosition.dx - startPosition!.dx;
-                  final dy = details.localPosition.dy - startPosition!.dy;
-                  canvasProvider.moveSelectedElement(Offset(dx, dy));
-                  setState(() {
-                    startPosition = details.localPosition;
                   });
                 }
               },
@@ -108,11 +91,13 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                     Colors
                         .grey[200], // Ensure canvas background is always drawn
                 child: CustomPaint(
+                  size: Size.infinite,
                   painter: CanvasPainter(
-                    canvasProvider.elements,
-                    startPosition,
-                    currentPosition,
-                    canvasProvider.selectedElement,
+                    elements: canvasProvider.elements,
+                    startPosition: startPosition,
+                    currentPosition: currentPosition,
+                    selectedElement: canvasProvider.selectedElement,
+                    selectedShape: canvasProvider.selectedShape,
                   ),
                 ),
               ),
@@ -129,13 +114,15 @@ class CanvasPainter extends CustomPainter {
   final Offset? startPosition;
   final Offset? currentPosition;
   final DesignElement? selectedElement;
+  final ShapeType? selectedShape;
 
-  CanvasPainter(
-    this.elements,
+  CanvasPainter({
+    required this.elements,
     this.startPosition,
     this.currentPosition,
     this.selectedElement,
-  );
+    this.selectedShape,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -171,11 +158,7 @@ class CanvasPainter extends CustomPainter {
             ..color = Colors.blue.withOpacity(0.5)
             ..style = PaintingStyle.fill;
 
-      final provider = Provider.of<CanvasProvider>(
-        null as BuildContext,
-        listen: false,
-      );
-      switch (provider.selectedShape) {
+      switch (selectedShape) {
         case ShapeType.rectangle:
           canvas.drawRect(
             Rect.fromPoints(startPosition!, currentPosition!),

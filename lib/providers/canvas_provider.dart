@@ -6,7 +6,7 @@ enum ShapeType { rectangle, circle }
 class CanvasProvider extends ChangeNotifier {
   List<DesignElement> elements = [];
   DesignElement? selectedElement;
-  ShapeType? selectedShape;
+  ShapeType selectedShape = ShapeType.rectangle; // Set default shape
   bool drawing = false;
   bool drawingMode = true;
 
@@ -36,7 +36,8 @@ class CanvasProvider extends ChangeNotifier {
     }
   }
 
-  void setSelectedShape(ShapeType? shape) {
+  void setSelectedShape(ShapeType shape) {
+    // Remove nullable type
     selectedShape = shape;
     notifyListeners();
   }
@@ -65,5 +66,10 @@ class CanvasProvider extends ChangeNotifier {
     }
   }
 
-  void selectShape(Object? object) {}
+  void selectShape(Object? object) {
+    if (object is ShapeType) {
+      selectedShape = object;
+      notifyListeners();
+    }
+  }
 }
