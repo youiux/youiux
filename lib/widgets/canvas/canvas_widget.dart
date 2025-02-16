@@ -191,10 +191,28 @@ class CanvasPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
       if (element.shapeType == ShapeType.rectangle) {
-        final rect = Rect.fromPoints(element.position, element.endPosition!);
+        final rect = Rect.fromLTRB(
+          // Normalize rectangle
+          element.position.dx < element.endPosition!.dx
+              ? element.position.dx
+              : element.endPosition!.dx,
+          element.position.dy < element.endPosition!.dy
+              ? element.position.dy
+              : element.endPosition!.dy,
+          element.position.dx > element.endPosition!.dx
+              ? element.position.dx
+              : element.endPosition!.dx,
+          element.position.dy > element.endPosition!.dy
+              ? element.position.dy
+              : element.endPosition!.dy,
+        );
         canvas.drawRect(rect, paint);
       } else if (element.shapeType == ShapeType.circle) {
-        final center = element.position;
+        // Use midpoint for center
+        final center = Offset(
+          (element.position.dx + element.endPosition!.dx) / 2,
+          (element.position.dy + element.endPosition!.dy) / 2,
+        );
         final radius = (element.endPosition! - element.position).distance / 2;
         canvas.drawCircle(center, radius, paint);
       }
