@@ -6,7 +6,9 @@ enum ShapeType { rectangle, circle }
 class CanvasProvider extends ChangeNotifier {
   List<DesignElement> elements = [];
   DesignElement? selectedElement;
-  ShapeType selectedShape = ShapeType.rectangle;
+  ShapeType? selectedShape;
+  bool drawing = false;
+  bool drawingMode = true;
 
   void addElement(DesignElement element) {
     selectedElement = null; // Clear selection when adding a new element
@@ -14,7 +16,7 @@ class CanvasProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectElement(DesignElement element) {
+  void selectElement(DesignElement? element) {
     selectedElement = element;
     notifyListeners();
   }
@@ -34,8 +36,34 @@ class CanvasProvider extends ChangeNotifier {
     }
   }
 
-  void setSelectedShape(ShapeType shape) {
+  void setSelectedShape(ShapeType? shape) {
     selectedShape = shape;
     notifyListeners();
   }
+
+  void setDrawing(bool value) {
+    drawing = value;
+    notifyListeners();
+  }
+
+  void setDrawingMode(bool value) {
+    drawingMode = value;
+    notifyListeners();
+  }
+
+  void moveSelectedElement(Offset delta) {
+    if (selectedElement != null) {
+      selectedElement!.position = Offset(
+        selectedElement!.position.dx + delta.dx,
+        selectedElement!.position.dy + delta.dy,
+      );
+      selectedElement!.endPosition = Offset(
+        selectedElement!.endPosition!.dx + delta.dx,
+        selectedElement!.endPosition!.dy + delta.dy,
+      );
+      notifyListeners();
+    }
+  }
+
+  void selectShape(Object? object) {}
 }

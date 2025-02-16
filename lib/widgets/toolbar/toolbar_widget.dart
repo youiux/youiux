@@ -12,6 +12,20 @@ class ToolbarWidget extends StatelessWidget {
       color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
+          // Drawing Mode Toggle
+          Consumer<CanvasProvider>(
+            builder: (context, canvasProvider, child) {
+              return IconButton(
+                icon: Icon(
+                  canvasProvider.drawingMode ? Icons.mouse : Icons.edit,
+                ),
+                onPressed: () {
+                  canvasProvider.setDrawingMode(!canvasProvider.drawingMode);
+                  canvasProvider.selectShape(null);
+                },
+              );
+            },
+          ),
           // Shape Selection Dropdown
           Consumer<CanvasProvider>(
             builder: (context, canvasProvider, child) {
