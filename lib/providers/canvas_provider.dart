@@ -11,8 +11,9 @@ class CanvasProvider extends ChangeNotifier {
   bool drawingMode = true;
 
   void addElement(DesignElement element) {
-    selectedElement = null; // Clear selection when adding a new element
+    selectedElement = element; // Select the newly created element
     elements.add(element);
+    drawingMode = false; // Switch to selection mode after creating shape
     notifyListeners();
   }
 
@@ -72,4 +73,60 @@ class CanvasProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void resizeSelectedElement(Offset delta, ResizeHandle handle) {
+    if (selectedElement == null) return;
+
+    final rect = Rect.fromPoints(
+      selectedElement!.position,
+      selectedElement!.endPosition!,
+    );
+    Offset newStart = selectedElement!.position;
+    Offset newEnd = selectedElement!.endPosition!;
+
+    switch (handle) {
+      case ResizeHandle.topLeft:
+        newStart = Offset(rect.left + delta.dx, rect.top + delta.dy);
+        break;
+      case ResizeHandle.topRight:
+        newStart = Offset(rect.left, rect.top + delta.dy);
+        newEnd = Offset(rect.right + delta.dx, rect.bottom);
+        break;
+      case ResizeHandle.bottomLeft:
+        newStart = Offset(rect.left + delta.dx, rect.top);
+        newEnd = Offset(rect.right, rect.bottom + delta.dy);
+        break;
+      case ResizeHandle.bottomRight:
+        newEnd = Offset(rect.right + delta.dx, rect.bottom + delta.dy);
+        break;
+      // Handle mid-point resizing
+      case ResizeHandle.top:
+        newStart = Offset(rect.left, rect.top + delta.dy);
+        break;
+      case ResizeHandle.bottom:
+        newEnd = Offset(rect.right, rect.bottom + delta.dy);
+        break;
+      case ResizeHandle.left:
+        newStart = Offset(rect.left + delta.dx, rect.top);
+        break;
+      case ResizeHandle.right:
+        newEnd = Offset(rect.right + delta.dx, rect.bottom);
+        break;
+    }
+
+    selectedElement!.position = newStart;
+    selectedElement!.endPosition = newEnd;
+    notifyListeners();
+  }
+}
+
+enum ResizeHandle {
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  top,
+  bottom,
+  left,
+  right,
 }
