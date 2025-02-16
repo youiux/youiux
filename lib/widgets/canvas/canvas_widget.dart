@@ -68,8 +68,8 @@ class _CanvasWidgetState extends State<CanvasWidget> {
               _showContextMenu(context, details.globalPosition, canvasProvider);
             },
             child: SizedBox(
-              width: 800,
-              height: 600,
+              width: double.infinity,
+              height: double.infinity,
               child: CustomPaint(
                 painter: CanvasPainter(
                   elements: canvasProvider.elements,
@@ -191,11 +191,9 @@ class CanvasPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
       if (element.shapeType == ShapeType.rectangle) {
-        // Ensure that the rectangle is drawn with correct points
         final rect = Rect.fromPoints(element.position, element.endPosition!);
         canvas.drawRect(rect, paint);
       } else if (element.shapeType == ShapeType.circle) {
-        // Ensure that the circle is drawn with correct center and radius
         final center = element.position;
         final radius = (element.endPosition! - element.position).distance / 2;
         canvas.drawCircle(center, radius, paint);
@@ -210,11 +208,9 @@ class CanvasPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
 
       if (selectedShape == ShapeType.rectangle) {
-        // Ensure that the rectangle is drawn with correct points
         final rect = Rect.fromPoints(startPosition!, currentPosition!);
         canvas.drawRect(rect, paint);
       } else if (selectedShape == ShapeType.circle) {
-        // Ensure that the circle is drawn with correct center and radius
         final center = startPosition!;
         final radius = (currentPosition! - startPosition!).distance / 2;
         canvas.drawCircle(center, radius, paint);

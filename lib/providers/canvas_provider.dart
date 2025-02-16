@@ -7,8 +7,8 @@ class CanvasProvider extends ChangeNotifier {
   List<DesignElement> elements = [];
   DesignElement? selectedElement;
   ShapeType selectedShape = ShapeType.rectangle;
-  bool isDrawing = false; // renamed from 'drawing'
-  bool isEditMode = false; // renamed from 'drawingMode'
+  bool isDrawing = false;
+  bool isEditMode = false;
 
   void addElement(DesignElement element) {
     elements.add(element);
