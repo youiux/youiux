@@ -16,7 +16,6 @@ class CanvasWidget extends StatelessWidget {
           maxScale: 4.0,
           child: Listener(
             onPointerDown: (event) {
-              // Check if we're near an existing element
               bool elementTapped = false;
               for (var element in canvasProvider.elements) {
                 if ((event.localPosition.dx - element.position.dx).abs() <
@@ -28,8 +27,6 @@ class CanvasWidget extends StatelessWidget {
                   break;
                 }
               }
-
-              // If no element was tapped, add a new one
               if (!elementTapped) {
                 canvasProvider.addElement(
                   DesignElement(
@@ -67,14 +64,12 @@ class CanvasPainter extends CustomPainter {
             ..color = element.color
             ..style = PaintingStyle.fill;
 
-      // Draw different shapes based on the shapeType
-      // Draw different shapes based on the shapeType
       switch (element.shapeType) {
         case ShapeType.rectangle:
           canvas.drawRect(
             Rect.fromLTWH(
-              element.position.dx,
-              element.position.dy,
+              element.position.dx - element.width / 2,
+              element.position.dy - element.height / 2,
               element.width,
               element.height,
             ),
@@ -83,15 +78,11 @@ class CanvasPainter extends CustomPainter {
           break;
         case ShapeType.circle:
           canvas.drawCircle(
-            Offset(
-              element.position.dx + element.width / 2,
-              element.position.dy + element.height / 2,
-            ),
-            element.width / 2,
+            element.position, // Use tap position as center
+            element.width / 2, // Use width for circle radius
             paint,
           );
           break;
-        // Add more shapes here (e.g., line, triangle)
       }
     }
   }
