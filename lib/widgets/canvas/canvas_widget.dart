@@ -71,7 +71,8 @@ class _CanvasWidgetState extends State<CanvasWidget> {
               width: double.infinity,
               height: double.infinity,
               child: CustomPaint(
-                painter: CanvasPainter(
+                // Replace 'painter:' with 'foregroundPainter:' so drawn shapes appear on top.
+                foregroundPainter: CanvasPainter(
                   elements: canvasProvider.elements,
                   startPosition: startPosition,
                   currentPosition: currentPosition,
