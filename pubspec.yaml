@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   logger: ^2.5.0
+  flutter_colorpicker: ^1.1.0
 
 dev_dependencies:
   flutter_test:

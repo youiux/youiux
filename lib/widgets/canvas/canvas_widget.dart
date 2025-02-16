@@ -17,7 +17,10 @@ class CanvasWidget extends StatelessWidget {
           child: GestureDetector(
             onTapDown: (details) {
               canvasProvider.addElement(
-                DesignElement(position: details.localPosition),
+                DesignElement(
+                  position: details.localPosition,
+                  shapeType: canvasProvider.selectedShape,
+                ),
               );
             },
             child: CustomPaint(
@@ -48,15 +51,31 @@ class CanvasPainter extends CustomPainter {
             ..color = element.color
             ..style = PaintingStyle.fill;
 
-      canvas.drawRect(
-        Rect.fromLTWH(
-          element.position.dx,
-          element.position.dy,
-          element.width,
-          element.height,
-        ),
-        paint,
-      );
+      // Draw different shapes based on the shapeType
+      switch (element.shapeType) {
+        case ShapeType.rectangle:
+          canvas.drawRect(
+            Rect.fromLTWH(
+              element.position.dx,
+              element.position.dy,
+              element.width,
+              element.height,
+            ),
+            paint,
+          );
+          break;
+        case ShapeType.circle:
+          canvas.drawCircle(
+            Offset(
+              element.position.dx + element.width / 2,
+              element.position.dy + element.height / 2,
+            ),
+            element.width / 2,
+            paint,
+          );
+          break;
+        // Add more shapes here (e.g., line, triangle)
+      }
     }
   }
 

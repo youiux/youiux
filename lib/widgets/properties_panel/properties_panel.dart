@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../providers/canvas_provider.dart';
 
 class PropertiesPanel extends StatelessWidget {
@@ -42,7 +43,50 @@ class PropertiesPanel extends StatelessWidget {
                     );
                   },
                 ),
-                // Add more properties here (e.g., color, position)
+                // Color Picker
+                Row(
+                  children: [
+                    const Text('Color:'),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Pick a color'),
+                              content: SingleChildScrollView(
+                                child: ColorPicker(
+                                  pickerColor:
+                                      canvasProvider.selectedElement!.color,
+                                  onColorChanged: (color) {
+                                    canvasProvider.updateSelectedElement(
+                                      color: color,
+                                    );
+                                  },
+                                ),
+                              ),
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  child: const Text('Done'),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        color: canvasProvider.selectedElement!.color,
+                      ),
+                    ),
+                  ],
+                ),
+                // Add more properties here (e.g., position)
               ],
             ),
           );
