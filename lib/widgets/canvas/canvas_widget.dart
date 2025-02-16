@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/canvas_provider.dart';
+import '../../models/design_element.dart';
 
 class CanvasWidget extends StatelessWidget {
   const CanvasWidget({Key? key}) : super(key: key);
@@ -15,28 +16,52 @@ class CanvasWidget extends StatelessWidget {
           maxScale: 4.0,
           child: GestureDetector(
             onTapDown: (details) {
-              canvasProvider.addElement(details.localPosition);
+              canvasProvider.addElement(
+                DesignElement(position: details.localPosition),
+              );
             },
-            child: Container(
-              color: Colors.grey[200],
-              child: Stack(
-                children: [
-                  for (var element in canvasProvider.elements)
-                    Positioned(
-                      left: element.dx,
-                      top: element.dy,
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        color: Colors.red,
-                      ),
-                    ),
-                ],
+            child: CustomPaint(
+              painter: CanvasPainter(canvasProvider.elements),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.grey[200],
               ),
             ),
           ),
         );
       },
     );
+  }
+}
+
+class CanvasPainter extends CustomPainter {
+  final List<DesignElement> elements;
+
+  CanvasPainter(this.elements);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var element in elements) {
+      final paint =
+          Paint()
+            ..color = element.color
+            ..style = PaintingStyle.fill;
+
+      canvas.drawRect(
+        Rect.fromLTWH(
+          element.position.dx,
+          element.position.dy,
+          element.width,
+          element.height,
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }

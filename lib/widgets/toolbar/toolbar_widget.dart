@@ -15,6 +15,8 @@ class ToolbarWidget extends StatelessWidget {
             icon: const Icon(Icons.rectangle_outlined),
             onPressed: () {},
           ),
+          IconButton(icon: const Icon(Icons.circle_outlined), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.line_weight), onPressed: () {}),
           IconButton(icon: const Icon(Icons.text_fields), onPressed: () {}),
         ],
       ),
