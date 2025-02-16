@@ -118,6 +118,49 @@ class CanvasProvider extends ChangeNotifier {
     selectedElement!.endPosition = newEnd;
     notifyListeners();
   }
+
+  void deleteElement(DesignElement element) {
+    elements.remove(element);
+    if (selectedElement == element) {
+      selectedElement = null;
+    }
+    notifyListeners();
+  }
+
+  void duplicateElement(DesignElement element) {
+    final newElement = DesignElement(
+      position: Offset(element.position.dx + 20, element.position.dy + 20),
+      endPosition: Offset(
+        element.endPosition!.dx + 20,
+        element.endPosition!.dy + 20,
+      ),
+      width: element.width,
+      height: element.height,
+      color: element.color,
+      shapeType: element.shapeType,
+    );
+    elements.add(newElement);
+    selectedElement = newElement;
+    notifyListeners();
+  }
+
+  void bringToFront(DesignElement element) {
+    elements.remove(element);
+    elements.add(element);
+    notifyListeners();
+  }
+
+  void sendToBack(DesignElement element) {
+    elements.remove(element);
+    elements.insert(0, element);
+    notifyListeners();
+  }
+
+  void paste(Offset position) {
+    if (selectedElement != null) {
+      duplicateElement(selectedElement!);
+    }
+  }
 }
 
 enum ResizeHandle {

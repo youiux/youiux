@@ -14,114 +14,63 @@ class _CanvasWidgetState extends State<CanvasWidget> {
   Offset? startPosition;
   Offset? currentPosition;
   bool isDragging = false;
+  Offset? menuPosition;
+  DesignElement? hoveredElement;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<CanvasProvider>(
       builder: (context, canvasProvider, child) {
         return MouseRegion(
-          cursor: _getCursor(canvasProvider),
-          child: InteractiveViewer(
-            boundaryMargin: const EdgeInsets.all(20),
-            minScale: 0.1,
-            maxScale: 4.0,
-            child: GestureDetector(
-              onPanStart: (details) {
-                if (canvasProvider.drawingMode) {
-                  // Drawing mode
-                  setState(() {
-                    startPosition = details.localPosition;
-                    currentPosition = details.localPosition;
-                  });
-                  canvasProvider.setDrawing(true);
-                } else {
-                  // Selection/dragging mode
-                  bool hitElement = false;
-                  for (var element in canvasProvider.elements) {
-                    if (isPointInsideElement(details.localPosition, element)) {
-                      canvasProvider.selectElement(element);
-                      setState(() {
-                        isDragging = true;
-                        startPosition = details.localPosition;
-                      });
-                      hitElement = true;
-                      break;
-                    }
-                  }
-                  if (!hitElement) {
-                    canvasProvider.selectElement(null);
-                  }
-                }
-              },
-              onPanUpdate: (details) {
-                if (canvasProvider.drawing) {
-                  // Drawing mode
-                  setState(() {
-                    currentPosition = details.localPosition;
-                  });
-                } else if (isDragging && startPosition != null) {
-                  // Dragging mode
-                  final delta = details.localPosition - startPosition!;
-                  canvasProvider.moveSelectedElement(delta);
-                  setState(() {
-                    startPosition = details.localPosition;
-                  });
-                }
-              },
-              onPanEnd: (details) {
-                if (canvasProvider.drawing) {
-                  // Finish drawing
-                  if (startPosition != null && currentPosition != null) {
-                    canvasProvider.addElement(
-                      DesignElement(
-                        position: startPosition!,
-                        endPosition: currentPosition!,
-                        shapeType: canvasProvider.selectedShape,
+          onHover: (event) {
+            setState(() {
+              hoveredElement = _findElementAt(
+                event.localPosition,
+                canvasProvider.elements,
+              );
+            });
+          },
+          onExit: (_) {
+            setState(() {
+              hoveredElement = null;
+            });
+          },
+          cursor: _getCursor(),
+          child: GestureDetector(
+            onSecondaryTapDown: (details) {
+              setState(() {
+                menuPosition = details.localPosition;
+              });
+              _showContextMenu(context, details.globalPosition, canvasProvider);
+            },
+            child: Stack(
+              children: [
+                InteractiveViewer(
+                  boundaryMargin: const EdgeInsets.all(20),
+                  minScale: 0.1,
+                  maxScale: 4.0,
+                  child: GestureDetector(
+                    onPanStart: _handlePanStart,
+                    onPanUpdate: _handlePanUpdate,
+                    onPanEnd: _handlePanEnd,
+                    child: CustomPaint(
+                      painter: CanvasPainter(
+                        elements: canvasProvider.elements,
+                        startPosition: startPosition,
+                        currentPosition: currentPosition,
+                        selectedElement: canvasProvider.selectedElement,
+                        hoveredElement: hoveredElement,
+                        selectedShape: canvasProvider.selectedShape,
                       ),
-                    );
-                  }
-                }
-                // Reset states
-                setState(() {
-                  isDragging = false;
-                  startPosition = null;
-                  currentPosition = null;
-                });
-                canvasProvider.setDrawing(false);
-              },
-              onTapDown: (details) {
-                bool elementTapped = false;
-                for (var element in canvasProvider.elements) {
-                  if ((details.localPosition.dx - element.position.dx).abs() <
-                          element.width / 2 &&
-                      (details.localPosition.dy - element.position.dy).abs() <
-                          element.height / 2) {
-                    canvasProvider.selectElement(element);
-                    elementTapped = true;
-                    break;
-                  }
-                }
-                if (!elementTapped) {
-                  canvasProvider.selectElement(null);
-                }
-              },
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color:
-                    Colors
-                        .grey[200], // Ensure canvas background is always drawn
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: CanvasPainter(
-                    elements: canvasProvider.elements,
-                    startPosition: startPosition,
-                    currentPosition: currentPosition,
-                    selectedElement: canvasProvider.selectedElement,
-                    selectedShape: canvasProvider.selectedShape,
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        color: Colors.grey[200],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         );
@@ -129,13 +78,130 @@ class _CanvasWidgetState extends State<CanvasWidget> {
     );
   }
 
-  MouseCursor _getCursor(CanvasProvider provider) {
-    if (provider.drawingMode) {
-      return SystemMouseCursors.precise;
-    } else if (provider.selectedElement != null || isDragging) {
-      return SystemMouseCursors.move;
+  void _showContextMenu(
+    BuildContext context,
+    Offset position,
+    CanvasProvider provider,
+  ) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RelativeRect positionRect = RelativeRect.fromRect(
+      Rect.fromPoints(position, position),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu(
+      context: context,
+      position: positionRect,
+      items: [
+        if (provider.selectedElement != null) ...[
+          PopupMenuItem(
+            child: const Text('Delete'),
+            onTap: () => provider.deleteElement(provider.selectedElement!),
+          ),
+          PopupMenuItem(
+            child: const Text('Duplicate'),
+            onTap: () => provider.duplicateElement(provider.selectedElement!),
+          ),
+          PopupMenuItem(
+            child: const Text('Bring to Front'),
+            onTap: () => provider.bringToFront(provider.selectedElement!),
+          ),
+          PopupMenuItem(
+            child: const Text('Send to Back'),
+            onTap: () => provider.sendToBack(provider.selectedElement!),
+          ),
+        ],
+        PopupMenuItem(
+          child: const Text('Paste'),
+          onTap: () => provider.paste(menuPosition!),
+        ),
+      ],
+    );
+  }
+
+  DesignElement? _findElementAt(Offset position, List<DesignElement> elements) {
+    for (var element in elements.reversed) {
+      if (isPointInsideElement(position, element)) {
+        return element;
+      }
     }
+    return null;
+  }
+
+  MouseCursor _getCursor() {
+    if (isDragging) return SystemMouseCursors.move;
+    if (hoveredElement != null) return SystemMouseCursors.click;
     return SystemMouseCursors.basic;
+  }
+
+  void _handlePanStart(DragStartDetails details) {
+    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
+    if (canvasProvider.drawingMode) {
+      // Drawing mode
+      setState(() {
+        startPosition = details.localPosition;
+        currentPosition = details.localPosition;
+      });
+      canvasProvider.setDrawing(true);
+    } else {
+      // Selection/dragging mode
+      bool hitElement = false;
+      for (var element in canvasProvider.elements) {
+        if (isPointInsideElement(details.localPosition, element)) {
+          canvasProvider.selectElement(element);
+          setState(() {
+            isDragging = true;
+            startPosition = details.localPosition;
+          });
+          hitElement = true;
+          break;
+        }
+      }
+      if (!hitElement) {
+        canvasProvider.selectElement(null);
+      }
+    }
+  }
+
+  void _handlePanUpdate(DragUpdateDetails details) {
+    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
+    if (canvasProvider.drawing) {
+      // Drawing mode
+      setState(() {
+        currentPosition = details.localPosition;
+      });
+    } else if (isDragging && startPosition != null) {
+      // Dragging mode
+      final delta = details.localPosition - startPosition!;
+      canvasProvider.moveSelectedElement(delta);
+      setState(() {
+        startPosition = details.localPosition;
+      });
+    }
+  }
+
+  void _handlePanEnd(DragEndDetails details) {
+    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
+    if (canvasProvider.drawing) {
+      // Finish drawing
+      if (startPosition != null && currentPosition != null) {
+        canvasProvider.addElement(
+          DesignElement(
+            position: startPosition!,
+            endPosition: currentPosition!,
+            shapeType: canvasProvider.selectedShape,
+          ),
+        );
+      }
+    }
+    // Reset states
+    setState(() {
+      isDragging = false;
+      startPosition = null;
+      currentPosition = null;
+    });
+    canvasProvider.setDrawing(false);
   }
 
   bool isPointInsideElement(Offset point, DesignElement element) {
@@ -151,6 +217,7 @@ class CanvasPainter extends CustomPainter {
   final Offset? startPosition;
   final Offset? currentPosition;
   final DesignElement? selectedElement;
+  final DesignElement? hoveredElement;
   final ShapeType? selectedShape;
 
   CanvasPainter({
@@ -158,6 +225,7 @@ class CanvasPainter extends CustomPainter {
     this.startPosition,
     this.currentPosition,
     this.selectedElement,
+    this.hoveredElement,
     this.selectedShape,
   });
 
@@ -165,7 +233,9 @@ class CanvasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // Draw existing elements
     for (var element in elements) {
-      _drawElement(canvas, element, element == selectedElement);
+      final isSelected = element == selectedElement;
+      final isHovered = element == hoveredElement;
+      _drawElement(canvas, element, isSelected, isHovered);
     }
 
     // Draw current drawing shape
@@ -185,7 +255,12 @@ class CanvasPainter extends CustomPainter {
     }
   }
 
-  void _drawElement(Canvas canvas, DesignElement element, bool isSelected) {
+  void _drawElement(
+    Canvas canvas,
+    DesignElement element,
+    bool isSelected,
+    bool isHovered,
+  ) {
     final paint =
         Paint()
           ..color = element.color
@@ -208,8 +283,18 @@ class CanvasPainter extends CustomPainter {
         return;
     }
 
-    if (isSelected) {
-      _drawResizeHandles(canvas, boundingBox);
+    if (isSelected || isHovered) {
+      final outlinePaint =
+          Paint()
+            ..color = isSelected ? Colors.blue : Colors.grey
+            ..strokeWidth = isSelected ? 2 : 1
+            ..style = PaintingStyle.stroke;
+
+      canvas.drawRect(boundingBox, outlinePaint);
+
+      if (isSelected) {
+        _drawResizeHandles(canvas, boundingBox);
+      }
     }
   }
 
