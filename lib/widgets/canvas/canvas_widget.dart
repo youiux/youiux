@@ -37,22 +37,13 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             });
           },
           cursor: _getCursor(),
-          child: RawGestureDetector(
-            gestures: {
-              AllowMultipleGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    AllowMultipleGestureRecognizer
-                  >(() => AllowMultipleGestureRecognizer(), (
-                    AllowMultipleGestureRecognizer instance,
-                  ) {
-                    instance.onSecondaryTapDown = (details) {
-                      _showContextMenu(
-                        context,
-                        details.globalPosition,
-                        canvasProvider,
-                      );
-                    };
-                  }),
+          child: Listener(
+            onPointerDown: (event) {
+              // Handle right click
+              if (event.kind == PointerDeviceKind.mouse &&
+                  event.buttons == kSecondaryMouseButton) {
+                _showContextMenu(context, event.position, canvasProvider);
+              }
             },
             child: Stack(
               children: [
@@ -373,12 +364,5 @@ class CanvasPainter extends CustomPainter {
         oldDelegate.startPosition != startPosition ||
         oldDelegate.currentPosition != currentPosition ||
         oldDelegate.selectedElement != selectedElement;
-  }
-}
-
-class AllowMultipleGestureRecognizer extends TapGestureRecognizer {
-  @override
-  void rejectGesture(int pointer) {
-    acceptGesture(pointer);
   }
 }

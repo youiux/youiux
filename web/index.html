@@ -40,8 +40,22 @@
       user-select: none;
     }
   </style>
+  <script>
+    // Prevent context menu globally
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    });
+  </script>
 </head>
-<body>
+<body oncontextmenu="return false;">
+  <script>
+    // Disable context menu on body
+    document.body.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    }, false);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
