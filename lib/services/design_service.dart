@@ -1,6 +1,5 @@
-
-
-
-
-
-}  }    // ...existing code...  void saveDesign() {class DesignService {
+class DesignService {
+  void saveDesign() {
+    // ...existing code...
+  }
+}

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PropertiesPanel extends StatelessWidget {
-  const PropertiesPanel({super.key});
+  const PropertiesPanel({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
